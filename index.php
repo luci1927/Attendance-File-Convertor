@@ -99,7 +99,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['action']) && $_GET['acti
     header('Content-Disposition: attachment; filename="' . $filename . '"');
     echo $output_content;
 
-    // Clear session data
     unset($_SESSION['file_content']);
     unset($_SESSION['file_time']);
     exit;
