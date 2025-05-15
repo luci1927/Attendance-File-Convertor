@@ -93,6 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['action']) && $_GET['acti
     $output_content = $_SESSION['file_content'];
     $current_time = $_SESSION['file_time'];
     $filename = "Office_Attendance_" . $current_time . ".txt";
+    // An error while uploading the downladd file.
 
     // Send file for download
     header('Content-Type: text/plain');
