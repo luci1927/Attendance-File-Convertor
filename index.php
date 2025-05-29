@@ -1,7 +1,7 @@
 <?php
-session_start();
-
-date_default_timezone_set('Asia/Colombo');
+// Define fixed master file paths
+define('MASTER_FILE_1', 'D:/Card.txt');
+define('MASTER_FILE_2', 'C:/Users/Dell/Downloads/Daily Att. Text File.txt');
 
 // Handle AJAX file processing
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_GET['action']) && $_GET['action'] === 'process') {
@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_GET['action']) && $_GET['act
                 $response = ['status' => 'error', 'message' => 'The uploaded file is empty.'];
             } else {
                 $data = [];
-                // Process each line, assuming format: emp_num date time (e.g., "123 15/10/2023 12:30:45")
+                // Process each line
                 for ($i = 1; $i < count($lines); $i++) { // Skip header
                     $line = trim($lines[$i]);
                     if ($line == '') continue;
@@ -68,13 +68,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_GET['action']) && $_GET['act
                         $output_lines[] = $transformed;
                     }
 
-                    $output_content = implode("\n", $output_lines);
-
-                    // Store file content in session for download
-                    $_SESSION['file_content'] = $output_content;
-                    $_SESSION['file_time'] = date('YmdHis');
-
-                    $response = ['status' => 'success', 'message' => 'File converted successfully! Downloading now...'];
+                    $output_content = implode("\n", $output_lines) . "\n";
+                    
+                    // Append to both master files
+                    $result1 = file_put_contents(MASTER_FILE_1, $output_content, FILE_APPEND);
+                    $result2 = file_put_contents(MASTER_FILE_2, $output_content, FILE_APPEND);
+                    
+                    if ($result1 === false || $result2 === false) {
+                        $errors = [];
+                        if ($result1 === false) $errors[] = MASTER_FILE_1;
+                        if ($result2 === false) $errors[] = MASTER_FILE_2;
+                        
+                        $response = [
+                            'status' => 'error', 
+                            'message' => 'Failed to append to: ' . implode(', ', $errors)
+                        ];
+                    } else {
+                        $response = [
+                            'status' => 'success', 
+                            'message' => 'File converted and appended to both master files successfully!'
+                        ];
+                    }
                 }
             }
         } else {
@@ -87,25 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_GET['action']) && $_GET['act
     echo json_encode($response);
     exit;
 }
-
-// Handle file download
-if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['action']) && $_GET['action'] === 'download' && isset($_SESSION['file_content'])) {
-    $output_content = $_SESSION['file_content'];
-    $current_time = $_SESSION['file_time'];
-    $filename = "Office_Attendance_" . $current_time . ".txt";
-    // An error while uploading the downladd file.
-
-    // Send file for download
-    header('Content-Type: text/plain');
-    header('Content-Disposition: attachment; filename="' . $filename . '"');
-    echo $output_content;
-
-    unset($_SESSION['file_content']);
-    unset($_SESSION['file_time']);
-    exit;
-}
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -116,72 +112,141 @@ if ($_SERVER['REQUEST_METHOD'] == 'GET' && isset($_GET['action']) && $_GET['acti
 </head>
 <body>
     <div class="container">
-        <h1>Attendance File Converter</h1>
-        <div class="message" id="message" style="display: none;"></div>
-        <form id="uploadForm" enctype="multipart/form-data">
-            <div class="file-upload">
-                <input type="file" name="file" id="fileInput" accept=".txt" required>
-                <label for="fileInput" class="file-label">Choose .txt File</label>
-                <span id="fileName">No file chosen</span>
+        
+        <div class="upload-section">
+            <h2>Upload Attendance File</h2>
+            
+            <div id="message" class="message">
+                <span class="icon">ℹ️</span>
+                <span id="messageText">Select a file to begin conversion</span>
             </div>
-            <button type="submit" class="submit-btn">Upload and Convert</button>
-        </form>
+            
+            <div class="upload-box">
+                <h3>Choose a file to upload</h3>
+                <p>Only .txt files are accepted</p>
+                
+                <div class="file-input-wrapper">
+                    <label class="file-label">
+                        <span class="icon">📎</span> Select File
+                        <input type="file" name="file" id="fileInput" accept=".txt" required>
+                    </label>
+                </div>
+                
+                <div id="fileName">No file chosen</div>
+            </div>
+            
+            <button id="submitBtn" class="submit-btn">Upload and Convert</button>
+        </div>
+
+        <div class="master-files">
+            <h2>Master Files</h2>
+            <div class="file-list">
+                <div class="file-item">
+                    <h3><span class="icon">📁</span> Master File 1</h3>
+                    <div class="file-path"><?php echo MASTER_FILE_1; ?></div>
+                </div>
+                <div class="file-item">
+                    <h3><span class="icon">📁</span> Master File 2</h3>
+                    <div class="file-path"><?php echo MASTER_FILE_2; ?></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Attendance File Converter System | Secure Processing</p>
+        </div>
     </div>
+    
     <script>
-        document.getElementById('fileInput').addEventListener('change', function() {
-            const fileName = this.files[0] ? this.files[0].name : 'No file chosen';
-            document.getElementById('fileName').textContent = fileName;
-        });
-
-        document.getElementById('uploadForm').addEventListener('submit', function(e) {
-            e.preventDefault();
+        document.addEventListener('DOMContentLoaded', function() {
             const fileInput = document.getElementById('fileInput');
+            const fileNameDisplay = document.getElementById('fileName');
+            const submitBtn = document.getElementById('submitBtn');
             const messageDiv = document.getElementById('message');
-
-            // Client-side file type validation
-            if (fileInput.files.length > 0) {
-                const fileName = fileInput.files[0].name;
-                if (!fileName.toLowerCase().endsWith('.txt')) {
-                    messageDiv.style.display = 'block';
-                    messageDiv.className = 'message error-message';
-                    messageDiv.innerHTML = '<span class="error-icon">⚠️</span>Only .txt files are allowed.';
-                    setTimeout(() => {
-                        messageDiv.style.display = 'none';
-                    }, 3000);
+            const messageText = document.getElementById('messageText');
+            const messageIcon = messageDiv.querySelector('.icon');
+            
+            // Show initial message
+            messageDiv.classList.add('info-message', 'show');
+            
+            // Update file name display
+            fileInput.addEventListener('change', function() {
+                const fileName = this.files[0] ? this.files[0].name : 'No file chosen';
+                fileNameDisplay.textContent = fileName;
+                
+                // Validate file type
+                if (this.files.length && !fileName.toLowerCase().endsWith('.txt')) {
+                    showMessage('error', 'Only .txt files are allowed.');
+                } else {
+                    showMessage('info', 'File selected. Click "Upload and Convert" to proceed.');
+                }
+            });
+            
+            // Handle form submission
+            submitBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Check if file is selected
+                if (!fileInput.files.length) {
+                    showMessage('error', 'Please select a file first.');
                     return;
                 }
-            }
-
-            const formData = new FormData(this);
-
-            fetch('index.php?action=process', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                messageDiv.style.display = 'block';
-                messageDiv.className = 'message ' + (data.status === 'success' ? 'success-message' : 'error-message');
-                messageDiv.innerHTML = (data.status === 'success' ? '<span class="success-icon">✅</span>' : '<span class="error-icon">⚠️</span>') + data.message;
-
-                if (data.status === 'success') {
-                    // Trigger file download
-                    window.location.href = 'index.php?action=download';
+                
+                const file = fileInput.files[0];
+                const fileName = file.name.toLowerCase();
+                
+                // Validate file type
+                if (!fileName.endsWith('.txt')) {
+                    showMessage('error', 'Only .txt files are allowed.');
+                    return;
                 }
-
-                // Clear message after 3 seconds
-                setTimeout(() => {
-                    messageDiv.style.display = 'none';
-                }, 3000);
-            })
-            .catch(error => {
-                messageDiv.style.display = 'block';
-                messageDiv.className = 'message error-message';
-                messageDiv.innerHTML = '<span class="error-icon">⚠️</span>Upload failed due to a network error.';
-                setTimeout(() => {
-                    messageDiv.style.display = 'none';
-                }, 3000);
+                
+                // Show processing message
+                showMessage('info', 'Processing your file...');
+                
+                // Create FormData object and send via AJAX
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                fetch('index.php?action=process', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        showMessage('success', data.message);
+                        // Reset file input
+                        fileInput.value = '';
+                        fileNameDisplay.textContent = 'No file chosen';
+                    } else {
+                        showMessage('error', data.message);
+                    }
+                })
+                .catch(error => {
+                    showMessage('error', 'Network error: ' + error.message);
+                });
             });
+            
+            // Function to show messages
+            function showMessage(type, text) {
+                messageText.textContent = text;
+                
+                // Clear previous classes
+                messageDiv.className = 'message';
+                
+                // Set new classes and icon
+                if (type === 'success') {
+                    messageDiv.classList.add('success-message', 'show');
+                    messageIcon.textContent = '✅';
+                } else if (type === 'error') {
+                    messageDiv.classList.add('error-message', 'show');
+                    messageIcon.textContent = '❌';
+                } else if (type === 'info') {
+                    messageDiv.classList.add('info-message', 'show');
+                    messageIcon.textContent = 'ℹ️';
+                }
+            }
         });
     </script>
 </body>
