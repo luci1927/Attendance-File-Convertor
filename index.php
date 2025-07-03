@@ -1,7 +1,6 @@
 <?php
-// Define fixed master file paths
-define('MASTER_FILE_1', 'D:/Card.txt');
-define('MASTER_FILE_2', 'C:/Users/Dell/Downloads/Daily Att. Text File.txt');
+// Define fixed master file path
+define('MASTER_FILE_1', 'F:/Daily Att. Text File.txt');
 
 // Handle AJAX file processing
 if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_GET['action']) && $_GET['action'] === 'process') {
@@ -70,23 +69,18 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_GET['action']) && $_GET['act
 
                     $output_content = implode("\n", $output_lines) . "\n";
                     
-                    // Append to both master files
-                    $result1 = file_put_contents(MASTER_FILE_1, $output_content, FILE_APPEND);
-                    $result2 = file_put_contents(MASTER_FILE_2, $output_content, FILE_APPEND);
+                    // Append to master file
+                    $result = file_put_contents(MASTER_FILE_1, $output_content, FILE_APPEND);
                     
-                    if ($result1 === false || $result2 === false) {
-                        $errors = [];
-                        if ($result1 === false) $errors[] = MASTER_FILE_1;
-                        if ($result2 === false) $errors[] = MASTER_FILE_2;
-                        
+                    if ($result === false) {
                         $response = [
                             'status' => 'error', 
-                            'message' => 'Failed to append to: ' . implode(', ', $errors)
+                            'message' => 'Failed to append to: ' . MASTER_FILE_1
                         ];
                     } else {
                         $response = [
                             'status' => 'success', 
-                            'message' => 'File converted and appended to both master files successfully!'
+                            'message' => 'File converted and appended to master file successfully!'
                         ];
                     }
                 }
@@ -139,15 +133,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_GET['action']) && $_GET['act
         </div>
 
         <div class="master-files">
-            <h2>Master Files</h2>
+            <h2>Master File</h2>
             <div class="file-list">
                 <div class="file-item">
-                    <h3><span class="icon">📁</span> Master File 1</h3>
+                    <h3><span class="icon">📁</span> Master File</h3>
                     <div class="file-path"><?php echo MASTER_FILE_1; ?></div>
-                </div>
-                <div class="file-item">
-                    <h3><span class="icon">📁</span> Master File 2</h3>
-                    <div class="file-path"><?php echo MASTER_FILE_2; ?></div>
                 </div>
             </div>
         </div>
