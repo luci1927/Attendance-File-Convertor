@@ -67,7 +67,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_GET['action']) && $_GET['act
                         $output_lines[] = $transformed;
                     }
 
-                    $output_content = implode("\n", $output_lines) . "\n";
+                     $output_content = implode("\r\n", $output_lines) . "\r\n";
+
+                    // Force proper HTTP headers to download
+                    header('Content-Type: text/plain; charset=us-ascii');
+                    header('Content-Disposition: attachment; filename="attendance.txt"');
+                    header('Content-Length: ' . strlen($output_content));
+                    header('Cache-Control: no-store, no-cache, must-revalidate');
                     
                     // Append to master file
                     $result = file_put_contents(MASTER_FILE_1, $output_content, FILE_APPEND);
